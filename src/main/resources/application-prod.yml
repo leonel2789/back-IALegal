@@ -1,0 +1,71 @@
+# Production configuration
+server:
+  port: ${SERVER_PORT:8080}
+
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/ialegal_sessions}
+    username: ${SPRING_DATASOURCE_USERNAME:ialegal}
+    password: ${SPRING_DATASOURCE_PASSWORD:ialegal123}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: update  # Cambiar a 'validate' cuando esté estable
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+
+  h2:
+    console:
+      enabled: false
+
+# Security
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${KEYCLOAK_ISSUER_URI:https://keycloak.nilosolutions.com/realms/ia-legal}
+          jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:https://keycloak.nilosolutions.com/realms/ia-legal/protocol/openid-connect/certs}
+
+# CORS Configuration for production
+cors:
+  allowed-origins:
+    - https://ialegal.nilosolutions.com  # Frontend production
+    - https://ialegalbackend.nilosolutions.com  # Backend production
+    - http://localhost:19006  # Expo dev server (for testing)
+    - http://localhost:8081   # Expo web (for testing)
+  allowed-methods:
+    - GET
+    - POST
+    - PUT
+    - DELETE
+    - OPTIONS
+  allowed-headers:
+    - "*"
+  allow-credentials: true
+
+# Logging
+logging:
+  level:
+    com.ialegal.backend: INFO
+    org.springframework.security: WARN
+    org.springframework.web: WARN
+    org.hibernate.SQL: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: /app/logs/application.log
+
+# Management endpoints
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when_authorized

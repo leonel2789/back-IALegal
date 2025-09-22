@@ -1,0 +1,130 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: ia-legal-backend
+
+  # Multiple Database Configuration for each agent
+  datasource:
+    # IA Contratos pgvector database
+    contratos:
+      jdbc-url: ${CONTRATOS_DB_URL:jdbc:postgresql://localhost:5432/n8n_contratos}
+      username: ${CONTRATOS_DB_USERNAME:n8n_user}
+      password: ${CONTRATOS_DB_PASSWORD:n8n_password}
+      driver-class-name: org.postgresql.Driver
+      hikari:
+        maximum-pool-size: 5
+        minimum-idle: 2
+        connection-timeout: 30000
+        idle-timeout: 600000
+        max-lifetime: 1800000
+
+    # IA Laboral pgvector database
+    laboral:
+      jdbc-url: ${LABORAL_DB_URL:jdbc:postgresql://localhost:5432/n8n_laboral}
+      username: ${LABORAL_DB_USERNAME:n8n_user}
+      password: ${LABORAL_DB_PASSWORD:n8n_password}
+      driver-class-name: org.postgresql.Driver
+      hikari:
+        maximum-pool-size: 5
+        minimum-idle: 2
+        connection-timeout: 30000
+        idle-timeout: 600000
+        max-lifetime: 1800000
+
+    # IA Defensa del Consumidor pgvector database
+    defensa:
+      jdbc-url: ${DEFENSA_DB_URL:jdbc:postgresql://localhost:5432/n8n_defensa}
+      username: ${DEFENSA_DB_USERNAME:n8n_user}
+      password: ${DEFENSA_DB_PASSWORD:n8n_password}
+      driver-class-name: org.postgresql.Driver
+      hikari:
+        maximum-pool-size: 5
+        minimum-idle: 2
+        connection-timeout: 30000
+        idle-timeout: 600000
+        max-lifetime: 1800000
+
+    # IA General pgvector database
+    general:
+      jdbc-url: ${GENERAL_DB_URL:jdbc:postgresql://localhost:5432/n8n_general}
+      username: ${GENERAL_DB_USERNAME:n8n_user}
+      password: ${GENERAL_DB_PASSWORD:n8n_password}
+      driver-class-name: org.postgresql.Driver
+      hikari:
+        maximum-pool-size: 5
+        minimum-idle: 2
+        connection-timeout: 30000
+        idle-timeout: 600000
+        max-lifetime: 1800000
+
+  # JPA Configuration for pgvector databases
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: none  # No modificar esquemas existentes de N8N
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        # Configuración específica para pgvector
+        jdbc:
+          time_zone: UTC
+
+  # H2 Console (for development)
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+  # Security Configuration for OAuth2/Keycloak
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:8080/realms/ia-legal
+          jwk-set-uri: http://localhost:8080/realms/ia-legal/protocol/openid-connect/certs
+
+# Logging
+logging:
+  level:
+    com.ialegal.backend: DEBUG
+    org.springframework.security: DEBUG
+    org.springframework.web: DEBUG
+
+# CORS Configuration
+cors:
+  allowed-origins:
+    - http://localhost:19006  # Expo dev server
+    - http://localhost:8081   # Expo web
+    - exp://192.168.*:19000   # Expo mobile
+    - https://ialegal.nilosolutions.com  # Frontend production
+    - https://ialegalbackend.nilosolutions.com  # Backend production
+  allowed-methods:
+    - GET
+    - POST
+    - PUT
+    - DELETE
+    - OPTIONS
+  allowed-headers:
+    - "*"
+  allow-credentials: true
+
+# Application specific properties
+app:
+  keycloak:
+    server-url: http://localhost:8080
+    realm: ia-legal
+
+  # AI Agent configurations
+  agents:
+    contratos:
+      webhook-url: https://legalcontratos.nilosolutions.com/webhook-test/66c6b4ae-eae4-411c-ad4f-64a359ec245f
+    laboral:
+      webhook-url: https://legallaboral.nilosolutions.com/webhook-test/66c6b4ae-eae4-411c-ad4f-64a359ec245f
+    defensa-consumidor:
+      webhook-url: https://legaldefensadelconsumidor.nilosolutions.com/webhook-test/66c6b4ae-eae4-411c-ad4f-64a359ec245f
+    general:
+      webhook-url: https://legalbackn8n.nilosolutions.com/webhook/66c6b4ae-eae4-411c-ad4f-64a359ec245f
