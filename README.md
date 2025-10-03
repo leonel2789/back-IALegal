@@ -73,29 +73,17 @@ EXPO_PUBLIC_USE_SPRING_BOOT=true
 EXPO_PUBLIC_SPRING_BOOT_URL=https://ialegalbackend.nilosolutions.com
 ```
 
-## Configuración pgvector Databases
+## Configuración de Base de Datos
 
-Este backend se conecta a las bases de datos **pgvector existentes** de N8N:
+Este backend se conecta a una base de datos PostgreSQL con soporte para **pgvector**.
 
 ### Variables de Entorno para Coolify
 
 ```bash
-# Databases pgvector por agente
-CONTRATOS_DB_URL=jdbc:postgresql://your-db-host:5432/n8n_contratos
-CONTRATOS_DB_USERNAME=n8n_user
-CONTRATOS_DB_PASSWORD=your_password
-
-LABORAL_DB_URL=jdbc:postgresql://your-db-host:5432/n8n_laboral
-LABORAL_DB_USERNAME=n8n_user
-LABORAL_DB_PASSWORD=your_password
-
-DEFENSA_DB_URL=jdbc:postgresql://your-db-host:5432/n8n_defensa
-DEFENSA_DB_USERNAME=n8n_user
-DEFENSA_DB_PASSWORD=your_password
-
-GENERAL_DB_URL=jdbc:postgresql://your-db-host:5432/n8n_general
-GENERAL_DB_USERNAME=n8n_user
-GENERAL_DB_PASSWORD=your_password
+# Database PostgreSQL
+DB_URL=jdbc:postgresql://your-db-host:5432/n8n
+DB_USERNAME=n8n_user
+DB_PASSWORD=your_password
 
 # Keycloak
 KEYCLOAK_ISSUER_URI=https://keycloak.nilosolutions.com/realms/ia-legal

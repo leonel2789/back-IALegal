@@ -5,71 +5,29 @@ spring:
   application:
     name: ia-legal-backend
 
-  # Multiple Database Configuration for each agent
+  # Single Database Configuration
   datasource:
-    # IA Contratos pgvector database
-    contratos:
-      jdbc-url: ${CONTRATOS_DB_URL:jdbc:postgresql://localhost:5432/n8n_contratos}
-      username: ${CONTRATOS_DB_USERNAME:n8n_user}
-      password: ${CONTRATOS_DB_PASSWORD:n8n_password}
-      driver-class-name: org.postgresql.Driver
-      hikari:
-        maximum-pool-size: 5
-        minimum-idle: 2
-        connection-timeout: 30000
-        idle-timeout: 600000
-        max-lifetime: 1800000
+    jdbc-url: ${DB_URL:jdbc:postgresql://localhost:5432/n8n}
+    username: ${DB_USERNAME:n8n_user}
+    password: ${DB_PASSWORD:n8n_password}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
 
-    # IA Laboral pgvector database
-    laboral:
-      jdbc-url: ${LABORAL_DB_URL:jdbc:postgresql://localhost:5432/n8n_laboral}
-      username: ${LABORAL_DB_USERNAME:n8n_user}
-      password: ${LABORAL_DB_PASSWORD:n8n_password}
-      driver-class-name: org.postgresql.Driver
-      hikari:
-        maximum-pool-size: 5
-        minimum-idle: 2
-        connection-timeout: 30000
-        idle-timeout: 600000
-        max-lifetime: 1800000
-
-    # IA Defensa del Consumidor pgvector database
-    defensa:
-      jdbc-url: ${DEFENSA_DB_URL:jdbc:postgresql://localhost:5432/n8n_defensa}
-      username: ${DEFENSA_DB_USERNAME:n8n_user}
-      password: ${DEFENSA_DB_PASSWORD:n8n_password}
-      driver-class-name: org.postgresql.Driver
-      hikari:
-        maximum-pool-size: 5
-        minimum-idle: 2
-        connection-timeout: 30000
-        idle-timeout: 600000
-        max-lifetime: 1800000
-
-    # IA General pgvector database
-    general:
-      jdbc-url: ${GENERAL_DB_URL:jdbc:postgresql://localhost:5432/n8n_general}
-      username: ${GENERAL_DB_USERNAME:n8n_user}
-      password: ${GENERAL_DB_PASSWORD:n8n_password}
-      driver-class-name: org.postgresql.Driver
-      hikari:
-        maximum-pool-size: 5
-        minimum-idle: 2
-        connection-timeout: 30000
-        idle-timeout: 600000
-        max-lifetime: 1800000
-
-  # JPA Configuration for pgvector databases
+  # JPA Configuration
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
-      ddl-auto: none  # No modificar esquemas existentes de N8N
+      ddl-auto: none
     show-sql: false
     properties:
       hibernate:
         format_sql: false
         dialect: org.hibernate.dialect.PostgreSQLDialect
-        # Configuración específica para pgvector
         jdbc:
           time_zone: UTC
 

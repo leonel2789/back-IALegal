@@ -1,6 +1,5 @@
 package com.ialegal.backend.service;
 
-import com.ialegal.backend.config.AgentRoutingDataSource;
 import com.ialegal.backend.dto.*;
 import com.ialegal.backend.entity.N8nChatHistory;
 import com.ialegal.backend.repository.N8nChatHistoryRepository;
@@ -28,49 +27,41 @@ public class N8nSessionService {
     public SessionDto createSession(String userId, CreateSessionRequest request) {
         log.info("Creating new session for user: {} with agent: {}", userId, request.getAgentType());
 
-        // Establecer datasource según el agente
-        AgentRoutingDataSource.setCurrentAgentType(request.getAgentType());
+        // Generar sessionId único
+        String sessionId = generateSessionId(userId, request.getAgentType());
 
-        try {
-            // Generar sessionId único
-            String sessionId = generateSessionId(userId, request.getAgentType());
-
-            // Si hay primer mensaje, crearlo
-            if (request.getFirstMessage() != null && !request.getFirstMessage().trim().isEmpty()) {
-                N8nChatHistory firstMessage = N8nChatHistory.builder()
-                        .sessionId(sessionId)
-                        .userId(userId)
-                        .message(request.getFirstMessage().trim())
-                        .isUser(true)
-                        .agentType(request.getAgentType())
-                        .conversationId(sessionId) // Usar sessionId como conversationId
-                        .timestamp(LocalDateTime.now())
-                        .build();
-
-                chatHistoryRepository.save(firstMessage);
-            }
-
-            // Retornar información de la sesión
-            String sessionName = request.getSessionName();
-            if (sessionName == null || sessionName.trim().isEmpty()) {
-                sessionName = request.getFirstMessage() != null ?
-                    generateSessionName(request.getFirstMessage()) : "Nueva conversación";
-            }
-
-            return SessionDto.builder()
+        // Si hay primer mensaje, crearlo
+        if (request.getFirstMessage() != null && !request.getFirstMessage().trim().isEmpty()) {
+            N8nChatHistory firstMessage = N8nChatHistory.builder()
                     .sessionId(sessionId)
                     .userId(userId)
+                    .message(request.getFirstMessage().trim())
+                    .isUser(true)
                     .agentType(request.getAgentType())
-                    .sessionName(sessionName)
-                    .createdAt(LocalDateTime.now())
-                    .updatedAt(LocalDateTime.now())
-                    .messageCount(request.getFirstMessage() != null ? 1 : 0)
-                    .isActive(true)
+                    .conversationId(sessionId) // Usar sessionId como conversationId
+                    .timestamp(LocalDateTime.now())
                     .build();
 
-        } finally {
-            AgentRoutingDataSource.clearCurrentAgentType();
+            chatHistoryRepository.save(firstMessage);
         }
+
+        // Retornar información de la sesión
+        String sessionName = request.getSessionName();
+        if (sessionName == null || sessionName.trim().isEmpty()) {
+            sessionName = request.getFirstMessage() != null ?
+                generateSessionName(request.getFirstMessage()) : "Nueva conversación";
+        }
+
+        return SessionDto.builder()
+                .sessionId(sessionId)
+                .userId(userId)
+                .agentType(request.getAgentType())
+                .sessionName(sessionName)
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .messageCount(request.getFirstMessage() != null ? 1 : 0)
+                .isActive(true)
+                .build();
     }
 
     /**
@@ -80,20 +71,13 @@ public class N8nSessionService {
     public List<SessionDto> getUserSessionsByAgent(String userId, String agentType) {
         log.debug("Getting sessions for user: {} and agent: {}", userId, agentType);
 
-        AgentRoutingDataSource.setCurrentAgentType(agentType);
+        // Obtener resúmenes de sesiones agrupadas
+        List<Object[]> sessionSummaries = chatHistoryRepository
+                .findSessionSummariesByUserIdAndAgentType(userId, agentType);
 
-        try {
-            // Obtener resúmenes de sesiones agrupadas
-            List<Object[]> sessionSummaries = chatHistoryRepository
-                    .findSessionSummariesByUserIdAndAgentType(userId, agentType);
-
-            return sessionSummaries.stream()
-                    .map(this::convertSummaryToSessionDto)
-                    .collect(Collectors.toList());
-
-        } finally {
-            AgentRoutingDataSource.clearCurrentAgentType();
-        }
+        return sessionSummaries.stream()
+                .map(this::convertSummaryToSessionDto)
+                .collect(Collectors.toList());
     }
 
     /**
@@ -103,45 +87,38 @@ public class N8nSessionService {
     public SessionDto getSession(String sessionId, String userId, String agentType) {
         log.debug("Getting session: {} for user: {}", sessionId, userId);
 
-        AgentRoutingDataSource.setCurrentAgentType(agentType);
-
-        try {
-            // Verificar que la sesión pertenece al usuario
-            if (!chatHistoryRepository.existsBySessionIdAndUserId(sessionId, userId)) {
-                throw new RuntimeException("Session not found or access denied: " + sessionId);
-            }
-
-            // Obtener mensajes de la sesión
-            List<N8nChatHistory> messages = chatHistoryRepository.findBySessionIdOrderByTimestampAsc(sessionId);
-
-            if (messages.isEmpty()) {
-                throw new RuntimeException("Session not found: " + sessionId);
-            }
-
-            // Convertir a DTOs
-            List<MessageDto> messageDtos = messages.stream()
-                    .map(this::convertHistoryToMessageDto)
-                    .collect(Collectors.toList());
-
-            // Crear SessionDto
-            N8nChatHistory firstMessage = messages.get(0);
-            String sessionName = generateSessionName(firstMessage.getMessage());
-
-            return SessionDto.builder()
-                    .sessionId(sessionId)
-                    .userId(userId)
-                    .agentType(agentType)
-                    .sessionName(sessionName)
-                    .createdAt(firstMessage.getTimestamp())
-                    .updatedAt(messages.get(messages.size() - 1).getTimestamp())
-                    .messageCount(messages.size())
-                    .isActive(true)
-                    .messages(messageDtos)
-                    .build();
-
-        } finally {
-            AgentRoutingDataSource.clearCurrentAgentType();
+        // Verificar que la sesión pertenece al usuario
+        if (!chatHistoryRepository.existsBySessionIdAndUserId(sessionId, userId)) {
+            throw new RuntimeException("Session not found or access denied: " + sessionId);
         }
+
+        // Obtener mensajes de la sesión
+        List<N8nChatHistory> messages = chatHistoryRepository.findBySessionIdOrderByTimestampAsc(sessionId);
+
+        if (messages.isEmpty()) {
+            throw new RuntimeException("Session not found: " + sessionId);
+        }
+
+        // Convertir a DTOs
+        List<MessageDto> messageDtos = messages.stream()
+                .map(this::convertHistoryToMessageDto)
+                .collect(Collectors.toList());
+
+        // Crear SessionDto
+        N8nChatHistory firstMessage = messages.get(0);
+        String sessionName = generateSessionName(firstMessage.getMessage());
+
+        return SessionDto.builder()
+                .sessionId(sessionId)
+                .userId(userId)
+                .agentType(agentType)
+                .sessionName(sessionName)
+                .createdAt(firstMessage.getTimestamp())
+                .updatedAt(messages.get(messages.size() - 1).getTimestamp())
+                .messageCount(messages.size())
+                .isActive(true)
+                .messages(messageDtos)
+                .build();
     }
 
     /**
@@ -151,22 +128,15 @@ public class N8nSessionService {
     public List<MessageDto> getSessionMessages(String sessionId, String userId, String agentType) {
         log.debug("Getting messages for session: {}", sessionId);
 
-        AgentRoutingDataSource.setCurrentAgentType(agentType);
-
-        try {
-            // Verificar acceso
-            if (!chatHistoryRepository.existsBySessionIdAndUserId(sessionId, userId)) {
-                throw new RuntimeException("Session not found or access denied: " + sessionId);
-            }
-
-            List<N8nChatHistory> messages = chatHistoryRepository.findBySessionIdOrderByTimestampAsc(sessionId);
-            return messages.stream()
-                    .map(this::convertHistoryToMessageDto)
-                    .collect(Collectors.toList());
-
-        } finally {
-            AgentRoutingDataSource.clearCurrentAgentType();
+        // Verificar acceso
+        if (!chatHistoryRepository.existsBySessionIdAndUserId(sessionId, userId)) {
+            throw new RuntimeException("Session not found or access denied: " + sessionId);
         }
+
+        List<N8nChatHistory> messages = chatHistoryRepository.findBySessionIdOrderByTimestampAsc(sessionId);
+        return messages.stream()
+                .map(this::convertHistoryToMessageDto)
+                .collect(Collectors.toList());
     }
 
     /**
@@ -176,35 +146,28 @@ public class N8nSessionService {
     public MessageDto addMessage(String sessionId, String userId, String agentType, AddMessageRequest request) {
         log.debug("Adding message to session: {}", sessionId);
 
-        AgentRoutingDataSource.setCurrentAgentType(agentType);
-
-        try {
-            // Verificar que la sesión existe y pertenece al usuario
-            if (!chatHistoryRepository.existsBySessionIdAndUserId(sessionId, userId)) {
-                throw new RuntimeException("Session not found or access denied: " + sessionId);
-            }
-
-            // Crear nuevo mensaje
-            N8nChatHistory message = N8nChatHistory.builder()
-                    .sessionId(sessionId)
-                    .userId(userId)
-                    .message(request.getContent())
-                    .response(request.getAgentResponse())
-                    .isUser(request.getIsUser())
-                    .agentType(agentType)
-                    .conversationId(sessionId)
-                    .processingTimeMs(request.getProcessingTimeMs())
-                    .errorMessage(request.getErrorMessage())
-                    .metadata(request.getMetadata())
-                    .timestamp(LocalDateTime.now())
-                    .build();
-
-            N8nChatHistory savedMessage = chatHistoryRepository.save(message);
-            return convertHistoryToMessageDto(savedMessage);
-
-        } finally {
-            AgentRoutingDataSource.clearCurrentAgentType();
+        // Verificar que la sesión existe y pertenece al usuario
+        if (!chatHistoryRepository.existsBySessionIdAndUserId(sessionId, userId)) {
+            throw new RuntimeException("Session not found or access denied: " + sessionId);
         }
+
+        // Crear nuevo mensaje
+        N8nChatHistory message = N8nChatHistory.builder()
+                .sessionId(sessionId)
+                .userId(userId)
+                .message(request.getContent())
+                .response(request.getAgentResponse())
+                .isUser(request.getIsUser())
+                .agentType(agentType)
+                .conversationId(sessionId)
+                .processingTimeMs(request.getProcessingTimeMs())
+                .errorMessage(request.getErrorMessage())
+                .metadata(request.getMetadata())
+                .timestamp(LocalDateTime.now())
+                .build();
+
+        N8nChatHistory savedMessage = chatHistoryRepository.save(message);
+        return convertHistoryToMessageDto(savedMessage);
     }
 
     /**
@@ -214,39 +177,32 @@ public class N8nSessionService {
     public List<SessionDto> searchSessions(String userId, String agentType, String searchTerm) {
         log.debug("Searching sessions for user: {} with term: {}", userId, searchTerm);
 
-        AgentRoutingDataSource.setCurrentAgentType(agentType);
+        List<N8nChatHistory> messages = chatHistoryRepository
+                .findMessagesByUserAndContentContaining(userId, searchTerm);
 
-        try {
-            List<N8nChatHistory> messages = chatHistoryRepository
-                    .findMessagesByUserAndContentContaining(userId, searchTerm);
+        // Agrupar por sessionId y convertir a SessionDto
+        return messages.stream()
+                .collect(Collectors.groupingBy(N8nChatHistory::getSessionId))
+                .entrySet().stream()
+                .map(entry -> {
+                    List<N8nChatHistory> sessionMessages = entry.getValue();
+                    N8nChatHistory firstMessage = sessionMessages.get(0);
 
-            // Agrupar por sessionId y convertir a SessionDto
-            return messages.stream()
-                    .collect(Collectors.groupingBy(N8nChatHistory::getSessionId))
-                    .entrySet().stream()
-                    .map(entry -> {
-                        List<N8nChatHistory> sessionMessages = entry.getValue();
-                        N8nChatHistory firstMessage = sessionMessages.get(0);
-
-                        return SessionDto.builder()
-                                .sessionId(entry.getKey())
-                                .userId(userId)
-                                .agentType(agentType)
-                                .sessionName(generateSessionName(firstMessage.getMessage()))
-                                .createdAt(firstMessage.getTimestamp())
-                                .updatedAt(sessionMessages.stream()
-                                        .map(N8nChatHistory::getTimestamp)
-                                        .max(LocalDateTime::compareTo)
-                                        .orElse(firstMessage.getTimestamp()))
-                                .messageCount(sessionMessages.size())
-                                .isActive(true)
-                                .build();
-                    })
-                    .collect(Collectors.toList());
-
-        } finally {
-            AgentRoutingDataSource.clearCurrentAgentType();
-        }
+                    return SessionDto.builder()
+                            .sessionId(entry.getKey())
+                            .userId(userId)
+                            .agentType(agentType)
+                            .sessionName(generateSessionName(firstMessage.getMessage()))
+                            .createdAt(firstMessage.getTimestamp())
+                            .updatedAt(sessionMessages.stream()
+                                    .map(N8nChatHistory::getTimestamp)
+                                    .max(LocalDateTime::compareTo)
+                                    .orElse(firstMessage.getTimestamp()))
+                            .messageCount(sessionMessages.size())
+                            .isActive(true)
+                            .build();
+                })
+                .collect(Collectors.toList());
     }
 
     // Métodos de utilidad privados
