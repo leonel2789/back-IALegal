@@ -39,6 +39,7 @@ public abstract class N8nChatHistoryBase {
     private String response;
 
     @Column(name = "is_user", nullable = false)
+    @lombok.Builder.Default
     private Boolean isUser = true;
 
     @CreatedDate
