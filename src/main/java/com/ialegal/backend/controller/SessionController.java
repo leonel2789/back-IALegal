@@ -44,12 +44,19 @@ public class SessionController {
 
     /**
      * Obtener todas las sesiones del usuario autenticado
+     * NOTA: Este endpoint está deprecado, usar /agent/{agentType} en su lugar
      */
     @GetMapping
-    public ResponseEntity<List<SessionDto>> getUserSessions(Authentication authentication) {
+    public ResponseEntity<List<SessionDto>> getUserSessions(
+            @RequestParam(required = false) String agentType,
+            Authentication authentication) {
+
         String userId = extractUserIdFromAuth(authentication);
-        log.debug("Getting sessions for user: {}", userId);
-        List<SessionDto> sessions = sessionService.getUserSessions(userId);
+        log.debug("Getting sessions for user: {} and agent: {}", userId, agentType);
+
+        // Si no se especifica agentType, usar 'ia-general' por defecto
+        String agent = agentType != null ? agentType : "ia-general";
+        List<SessionDto> sessions = n8nSessionService.getUserSessionsByAgent(userId, agent);
         return ResponseEntity.ok(sessions);
     }
 
@@ -63,111 +70,72 @@ public class SessionController {
 
         String userId = extractUserIdFromAuth(authentication);
         log.debug("Getting sessions for user: {} and agent: {}", userId, agentType);
-        List<SessionDto> sessions = sessionService.getUserSessionsByAgent(userId, agentType);
-        return ResponseEntity.ok(sessions);
-    }
-
-    /**
-     * Obtener sesiones con paginación
-     */
-    @GetMapping("/agent/{agentType}/paginated")
-    public ResponseEntity<Page<SessionDto>> getUserSessionsPaginated(
-            @PathVariable String agentType,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size,
-            Authentication authentication) {
-
-        String userId = extractUserIdFromAuth(authentication);
-        Page<SessionDto> sessions = sessionService.getUserSessionsPaginated(userId, agentType, page, size);
+        List<SessionDto> sessions = n8nSessionService.getUserSessionsByAgent(userId, agentType);
         return ResponseEntity.ok(sessions);
     }
 
     /**
      * Obtener una sesión específica con sus mensajes
+     * Requiere el agentType como query parameter
      */
     @GetMapping("/{sessionId}")
     public ResponseEntity<SessionDto> getSession(
             @PathVariable String sessionId,
+            @RequestParam String agentType,
             Authentication authentication) {
 
         String userId = extractUserIdFromAuth(authentication);
-        log.debug("Getting session: {} for user: {}", sessionId, userId);
-        SessionDto session = sessionService.getSession(sessionId, userId);
+        log.debug("Getting session: {} for user: {} with agent: {}", sessionId, userId, agentType);
+        SessionDto session = n8nSessionService.getSession(sessionId, userId, agentType);
         return ResponseEntity.ok(session);
     }
 
     /**
      * Obtener mensajes de una sesión
+     * Requiere el agentType como query parameter
      */
     @GetMapping("/{sessionId}/messages")
     public ResponseEntity<List<MessageDto>> getSessionMessages(
             @PathVariable String sessionId,
+            @RequestParam String agentType,
             Authentication authentication) {
 
         String userId = extractUserIdFromAuth(authentication);
-        List<MessageDto> messages = sessionService.getSessionMessages(sessionId, userId);
+        log.debug("Getting messages for session: {} with agent: {}", sessionId, agentType);
+        List<MessageDto> messages = n8nSessionService.getSessionMessages(sessionId, userId, agentType);
         return ResponseEntity.ok(messages);
     }
 
     /**
      * Agregar mensaje a una sesión
+     * Requiere el agentType como query parameter
      */
     @PostMapping("/{sessionId}/messages")
     public ResponseEntity<MessageDto> addMessage(
             @PathVariable String sessionId,
+            @RequestParam String agentType,
             @Valid @RequestBody AddMessageRequest request,
             Authentication authentication) {
 
         String userId = extractUserIdFromAuth(authentication);
-        log.info("Adding message to session: {} for user: {}", sessionId, userId);
-        MessageDto message = sessionService.addMessage(sessionId, userId, request);
+        log.info("Adding message to session: {} for user: {} with agent: {}", sessionId, userId, agentType);
+        MessageDto message = n8nSessionService.addMessage(sessionId, userId, agentType, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(message);
     }
 
     /**
-     * Actualizar nombre de sesión
-     */
-    @PutMapping("/{sessionId}/name")
-    public ResponseEntity<SessionDto> updateSessionName(
-            @PathVariable String sessionId,
-            @RequestBody Map<String, String> request,
-            Authentication authentication) {
-
-        String userId = extractUserIdFromAuth(authentication);
-        String newName = request.get("sessionName");
-
-        if (newName == null || newName.trim().isEmpty()) {
-            return ResponseEntity.badRequest().build();
-        }
-
-        SessionDto session = sessionService.updateSessionName(sessionId, userId, newName);
-        return ResponseEntity.ok(session);
-    }
-
-    /**
-     * Eliminar una sesión
-     */
-    @DeleteMapping("/{sessionId}")
-    public ResponseEntity<Void> deleteSession(
-            @PathVariable String sessionId,
-            Authentication authentication) {
-
-        String userId = extractUserIdFromAuth(authentication);
-        log.info("Deleting session: {} for user: {}", sessionId, userId);
-        sessionService.deleteSession(sessionId, userId);
-        return ResponseEntity.noContent().build();
-    }
-
-    /**
-     * Buscar sesiones por nombre
+     * Buscar sesiones por contenido
+     * Requiere el agentType como query parameter
      */
     @GetMapping("/search")
     public ResponseEntity<List<SessionDto>> searchSessions(
             @RequestParam String query,
+            @RequestParam String agentType,
             Authentication authentication) {
 
         String userId = extractUserIdFromAuth(authentication);
-        List<SessionDto> sessions = sessionService.searchSessions(userId, query);
+        log.debug("Searching sessions for user: {} with query: {} and agent: {}", userId, query, agentType);
+        List<SessionDto> sessions = n8nSessionService.searchSessions(userId, agentType, query);
         return ResponseEntity.ok(sessions);
     }
 
