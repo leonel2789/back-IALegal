@@ -140,6 +140,22 @@ public class SessionController {
     }
 
     /**
+     * Eliminar una sesión
+     * Requiere el agentType como query parameter
+     */
+    @DeleteMapping("/{sessionId}")
+    public ResponseEntity<Void> deleteSession(
+            @PathVariable String sessionId,
+            @RequestParam String agentType,
+            Authentication authentication) {
+
+        String userId = extractUserIdFromAuth(authentication);
+        log.info("Deleting session: {} for user: {} with agent: {}", sessionId, userId, agentType);
+        n8nSessionService.deleteSession(sessionId, userId, agentType);
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
      * Health check endpoint
      */
     @GetMapping("/health")

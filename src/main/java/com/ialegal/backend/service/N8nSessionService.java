@@ -341,6 +341,30 @@ public class N8nSessionService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Eliminar una sesión y todos sus mensajes
+     */
+    @Transactional
+    public void deleteSession(String sessionId, String userId, String agentType) {
+        log.info("Deleting session: {} for user: {} with agent: {}", sessionId, userId, agentType);
+
+        N8nChatHistoryBaseRepository<N8nChatHistoryBase> repository = getRepository(agentType);
+
+        // Verificar que la sesión pertenece al usuario
+        if (!repository.existsBySessionIdAndUserId(sessionId, userId)) {
+            throw new RuntimeException("Session not found or access denied: " + sessionId);
+        }
+
+        // Obtener todos los mensajes de la sesión
+        List<N8nChatHistoryBase> messages = repository.findBySessionIdOrderByTimestampAsc(sessionId);
+
+        // Eliminar todos los mensajes
+        if (!messages.isEmpty()) {
+            repository.deleteAll(messages);
+            log.info("Deleted {} messages from session: {}", messages.size(), sessionId);
+        }
+    }
+
     // Métodos de utilidad privados
 
     private String generateSessionId(String userId, String agentType) {
