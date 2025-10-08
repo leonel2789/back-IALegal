@@ -42,8 +42,8 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: http://localhost:8080/realms/ia-legal
-          jwk-set-uri: http://localhost:8080/realms/ia-legal/protocol/openid-connect/certs
+          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8080/realms/ia-legal}
+          jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://localhost:8080/realms/ia-legal/protocol/openid-connect/certs}
 
 # Logging
 logging:
@@ -73,8 +73,8 @@ cors:
 # Application specific properties
 app:
   keycloak:
-    server-url: http://localhost:8080
-    realm: ia-legal
+    server-url: ${KEYCLOAK_SERVER_URL:http://localhost:8080}
+    realm: ${KEYCLOAK_REALM:ia-legal}
 
   # AI Agent configurations
   agents:
