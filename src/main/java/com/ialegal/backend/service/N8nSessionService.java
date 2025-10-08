@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -149,9 +150,11 @@ public class N8nSessionService {
 
         N8nChatHistoryBaseRepository<N8nChatHistoryBase> repository = getRepository(agentType);
 
-        // Verificar acceso
+        // Verificar si la sesión existe
+        // Si no existe, retornar array vacío (puede ser una sesión nueva sin mensajes aún)
         if (!repository.existsBySessionIdAndUserId(sessionId, userId)) {
-            throw new RuntimeException("Session not found or access denied: " + sessionId);
+            log.debug("Session {} not found in DB yet - returning empty array (new session)", sessionId);
+            return Collections.emptyList();
         }
 
         List<N8nChatHistoryBase> messages = repository.findBySessionIdOrderByIdAsc(sessionId);
