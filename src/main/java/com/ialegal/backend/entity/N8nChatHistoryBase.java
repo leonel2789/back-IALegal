@@ -1,26 +1,29 @@
 package com.ialegal.backend.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 import lombok.experimental.SuperBuilder;
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-import java.time.LocalDateTime;
+import java.util.Map;
 
 /**
  * Clase base abstracta para las entidades de historial de chat de N8N.
- * Define los campos comunes compartidos por todas las tablas de historial específicas de cada agente.
+ * Mapea la estructura real de N8N: id, session_id, message (JSONB)
  */
 @MappedSuperclass
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @SuperBuilder
-@EntityListeners(AuditingEntityListener.class)
 public abstract class N8nChatHistoryBase {
+
+    private static final ObjectMapper objectMapper = new ObjectMapper();
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -29,89 +32,73 @@ public abstract class N8nChatHistoryBase {
     @Column(name = "session_id", nullable = false)
     private String sessionId;
 
-    @Column(name = "user_id", nullable = false)
-    private String userId;
+    @Column(name = "message", nullable = false, columnDefinition = "JSONB")
+    private String message; // JSONB raw string
 
-    @Column(name = "message", nullable = false, columnDefinition = "TEXT")
-    private String message;
+    /**
+     * Clase interna para representar el contenido del campo JSONB message
+     */
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public static class MessageContent {
+        @JsonProperty("type")
+        private String type; // "human" o "ai"
 
-    @Column(name = "response", columnDefinition = "TEXT")
-    private String response;
+        @JsonProperty("content")
+        private String content; // El texto del mensaje
 
-    @Column(name = "is_user", nullable = false)
-    @lombok.Builder.Default
-    private Boolean isUser = true;
+        @JsonProperty("additional_kwargs")
+        private Map<String, Object> additionalKwargs;
 
-    @CreatedDate
-    @Column(name = "timestamp", nullable = false)
-    private LocalDateTime timestamp;
+        @JsonProperty("response_metadata")
+        private Map<String, Object> responseMetadata;
+    }
 
-    @Column(name = "agent_type")
-    private String agentType;
+    // Métodos de utilidad para parsear el JSONB
 
-    // Campos específicos de pgvector/embeddings (si existen)
-    @Column(name = "embedding", columnDefinition = "vector")
-    private String embedding; // pgvector field
-
-    @Column(name = "metadata", columnDefinition = "JSONB")
-    private String metadata;
-
-    @Column(name = "tokens_used")
-    private Integer tokensUsed;
-
-    @Column(name = "processing_time_ms")
-    private Long processingTimeMs;
-
-    @Column(name = "error_message", columnDefinition = "TEXT")
-    private String errorMessage;
-
-    @Column(name = "conversation_id")
-    private String conversationId; // Para agrupar mensajes de una conversación
-
-    @Column(name = "message_type")
-    private String messageType; // 'user', 'assistant', 'system'
-
-    @Column(name = "model_used")
-    private String modelUsed;
-
-    @Column(name = "temperature")
-    private Float temperature;
-
-    @PrePersist
-    protected void onCreate() {
-        if (this.timestamp == null) {
-            this.timestamp = LocalDateTime.now();
+    public MessageContent getParsedMessage() {
+        if (this.message == null) {
+            return null;
         }
-        if (this.isUser == null) {
-            this.isUser = true;
-        }
-        if (this.messageType == null) {
-            this.messageType = this.isUser ? "user" : "assistant";
+        try {
+            return objectMapper.readValue(this.message, MessageContent.class);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("Error parsing message JSON: " + e.getMessage(), e);
         }
     }
 
-    // Métodos de utilidad para compatibilidad con ChatMessage
     public String getContent() {
-        return this.message;
+        MessageContent parsed = getParsedMessage();
+        return parsed != null ? parsed.getContent() : null;
     }
 
-    public void setContent(String content) {
-        this.message = content;
+    public boolean isUserMessage() {
+        MessageContent parsed = getParsedMessage();
+        return parsed != null && "human".equals(parsed.getType());
     }
 
-    public LocalDateTime getCreatedAt() {
-        return this.timestamp;
+    public boolean isAiMessage() {
+        MessageContent parsed = getParsedMessage();
+        return parsed != null && "ai".equals(parsed.getType());
     }
 
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.timestamp = createdAt;
+    // Extraer userId del sessionId (formato: userId_agentType_timestamp_uuid)
+    public String getUserId() {
+        if (this.sessionId == null) {
+            return null;
+        }
+        String[] parts = this.sessionId.split("_");
+        return parts.length > 0 ? parts[0] : null;
     }
 
-    public String getAgentResponse() {
-        return this.response;
-    }
-
-    public void setAgentResponse(String agentResponse) {
-        this.response = agentResponse;
+    // Extraer agentType del sessionId
+    public String getAgentType() {
+        if (this.sessionId == null) {
+            return null;
+        }
+        String[] parts = this.sessionId.split("_");
+        return parts.length > 1 ? parts[1] : null;
     }
 }
