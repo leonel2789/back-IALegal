@@ -40,4 +40,10 @@ public interface N8nChatHistoryGeneralRepository extends N8nChatHistoryBaseRepos
             @Param("userId") String userId,
             @Param("searchTerm") String searchTerm
     );
+
+    @Query(value = "SELECT CASE WHEN COUNT(*) > 0 THEN true ELSE false END " +
+            "FROM n8n_chat_histories_general " +
+            "WHERE session_id = :sessionId " +
+            "AND session_id LIKE CONCAT(:userId, '_%')", nativeQuery = true)
+    boolean existsBySessionIdAndUserId(@Param("sessionId") String sessionId, @Param("userId") String userId);
 }

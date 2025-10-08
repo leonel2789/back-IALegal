@@ -21,11 +21,7 @@ public interface N8nChatHistoryBaseRepository<T extends N8nChatHistoryBase> exte
     // Contar mensajes en una sesión
     long countBySessionId(String sessionId);
 
-    // Verificar si una sesión pertenece a un usuario (extrayendo userId del sessionId)
-    @Query(value = "SELECT CASE WHEN COUNT(*) > 0 THEN true ELSE false END " +
-            "FROM #{#entityName} " +
-            "WHERE session_id = :sessionId " +
-            "AND session_id LIKE CONCAT(:userId, '_%')", nativeQuery = true)
+    // Verificar si una sesión pertenece a un usuario (debe ser implementado por cada repositorio específico)
     boolean existsBySessionIdAndUserId(@Param("sessionId") String sessionId, @Param("userId") String userId);
 
     // Eliminar todos los mensajes de una sesión
