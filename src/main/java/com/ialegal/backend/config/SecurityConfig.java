@@ -62,13 +62,15 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        // Orígenes permitidos (Expo dev server y web)
+        // Orígenes permitidos (Expo dev server, web y producción)
         configuration.setAllowedOriginPatterns(Arrays.asList(
                 "http://localhost:*",
                 "https://localhost:*",
                 "exp://*:*",
                 "http://192.168.*:*",
-                "https://192.168.*:*"
+                "https://192.168.*:*",
+                "https://legal.nilosolutions.com",
+                "https://ialegalbackend.nilosolutions.com"
         ));
 
         // Métodos HTTP permitidos

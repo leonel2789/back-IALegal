@@ -20,7 +20,6 @@ import java.util.Map;
 @RequestMapping("/api/sessions")
 @RequiredArgsConstructor
 @Slf4j
-@CrossOrigin(origins = {"http://localhost:19006", "http://localhost:8081", "exp://192.168.*:19000"})
 public class SessionController {
 
     private final SessionService sessionService;
