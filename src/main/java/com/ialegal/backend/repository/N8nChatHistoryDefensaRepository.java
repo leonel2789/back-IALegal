@@ -19,8 +19,10 @@ public interface N8nChatHistoryDefensaRepository extends N8nChatHistoryBaseRepos
     @Query(value = "SELECT session_id, " +
             "MIN(id) as firstMessageId, " +
             "MAX(id) as lastMessageId, " +
-            "COUNT(*) as messageCount " +
-            "FROM n8n_chat_histories_defensa " +
+            "COUNT(*) as messageCount, " +
+            "(SELECT created_at FROM n8n_chat_histories_defensa WHERE session_id = d.session_id ORDER BY id ASC LIMIT 1) as createdAt, " +
+            "(SELECT created_at FROM n8n_chat_histories_defensa WHERE session_id = d.session_id ORDER BY id DESC LIMIT 1) as updatedAt " +
+            "FROM n8n_chat_histories_defensa d " +
             "WHERE session_id LIKE CONCAT(:userId, '_', :agentType, '_%') " +
             "GROUP BY session_id " +
             "ORDER BY MAX(id) DESC", nativeQuery = true)

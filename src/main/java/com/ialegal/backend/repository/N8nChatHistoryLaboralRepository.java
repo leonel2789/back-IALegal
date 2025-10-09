@@ -17,12 +17,14 @@ public interface N8nChatHistoryLaboralRepository extends N8nChatHistoryBaseRepos
             "ORDER BY session_id DESC", nativeQuery = true)
     List<String> findDistinctSessionIdsByUserIdAndAgentType(@Param("userId") String userId, @Param("agentType") String agentType);
 
-    // Obtener resumen de sesiones (sessionId, primer mensaje, último mensaje, count)
+    // Obtener resumen de sesiones (sessionId, primer mensaje, último mensaje, count, fechas)
     @Query(value = "SELECT session_id, " +
             "MIN(id) as firstMessageId, " +
             "MAX(id) as lastMessageId, " +
-            "COUNT(*) as messageCount " +
-            "FROM n8n_chat_histories_laboral " +
+            "COUNT(*) as messageCount, " +
+            "(SELECT created_at FROM n8n_chat_histories_laboral WHERE session_id = l.session_id ORDER BY id ASC LIMIT 1) as createdAt, " +
+            "(SELECT created_at FROM n8n_chat_histories_laboral WHERE session_id = l.session_id ORDER BY id DESC LIMIT 1) as updatedAt " +
+            "FROM n8n_chat_histories_laboral l " +
             "WHERE session_id LIKE CONCAT(:userId, '_', :agentType, '_%') " +
             "GROUP BY session_id " +
             "ORDER BY MAX(id) DESC", nativeQuery = true)

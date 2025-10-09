@@ -271,8 +271,11 @@ public class N8nSessionService {
 
     private SessionDto convertSummaryToSessionDto(Object[] summary, String agentType) {
         String sessionId = (String) summary[0];
-        // summary[1] y [2] son IDs ahora, no timestamps
+        // summary[1] y [2] son IDs
         Long messageCount = ((Number) summary[3]).longValue();
+        // summary[4] y [5] son las fechas createdAt y updatedAt
+        java.sql.Timestamp createdAtTimestamp = (java.sql.Timestamp) summary[4];
+        java.sql.Timestamp updatedAtTimestamp = (java.sql.Timestamp) summary[5];
 
         N8nChatHistoryBaseRepository<N8nChatHistoryBase> repository = getRepository(agentType);
 
@@ -289,8 +292,8 @@ public class N8nSessionService {
                 .userId(userId)
                 .agentType(agentType)
                 .sessionName(sessionName)
-                .createdAt(null) // No tenemos timestamp real
-                .updatedAt(null)
+                .createdAt(createdAtTimestamp != null ? createdAtTimestamp.toLocalDateTime() : null)
+                .updatedAt(updatedAtTimestamp != null ? updatedAtTimestamp.toLocalDateTime() : null)
                 .messageCount(messageCount.intValue())
                 .isActive(true)
                 .build();
