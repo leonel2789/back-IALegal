@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 import lombok.experimental.SuperBuilder;
 
+import java.time.LocalDateTime;
 import java.util.Map;
 
 /**
@@ -34,6 +35,9 @@ public abstract class N8nChatHistoryBase {
 
     @Column(name = "message", nullable = false, columnDefinition = "JSONB")
     private String message; // JSONB raw string
+
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
 
     /**
      * Clase interna para representar el contenido del campo JSONB message

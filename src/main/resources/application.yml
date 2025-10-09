@@ -5,6 +5,12 @@ spring:
   application:
     name: ia-legal-backend
 
+  # Jackson JSON Configuration
+  jackson:
+    time-zone: America/Argentina/Buenos_Aires
+    serialization:
+      write-dates-as-timestamps: false
+
   # Single Database Configuration
   datasource:
     jdbc-url: ${DB_URL:jdbc:postgresql://localhost:5432/n8n}
@@ -29,7 +35,7 @@ spring:
         format_sql: false
         dialect: org.hibernate.dialect.PostgreSQLDialect
         jdbc:
-          time_zone: UTC
+          time_zone: America/Argentina/Buenos_Aires
 
   # H2 Console (for development)
   h2:
